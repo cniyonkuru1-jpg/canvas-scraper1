@@ -3,34 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Assignment Board</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>Study Board</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Patrick+Hand&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <div class="wrap">
-      <div class="hero-top">
-        <div>
-          <h1>Assignment board</h1>
-          <p class="sub" id="source"></p>
-        </div>
-        <button class="load" id="loadBtn" type="button">Load scraped file</button>
-        <input id="fileInput" type="file" accept=".json,application/json" hidden>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>My study board</h1>
+        <p class="sub" id="source"></p>
       </div>
+      <button class="load" id="loadBtn" type="button">Load scraped file</button>
+      <input id="fileInput" type="file" accept=".json,application/json" hidden>
+    </header>
 
-      <section class="progress" aria-label="Progress summary">
-        <div class="bar" id="bar" role="img"></div>
-        <ul class="legend" id="legend"></ul>
-      </section>
-    </div>
-  </header>
+    <section aria-label="Progress summary">
+      <div class="bar" id="bar" role="img"></div>
+      <ul class="legend" id="legend"></ul>
+    </section>
 
-  <main class="wrap">
     <div class="filters" id="filters" role="group" aria-label="Filter assignments"></div>
+
+    <div class="heads" aria-hidden="true">
+      <h2>To do</h2>
+      <h2>Missing</h2>
+      <h2>Submitted</h2>
+    </div>
+
     <ul class="list" id="list"></ul>
+
     <p class="note">Run <code>node scraper.js</code>, then load the <code>canvas_assignments.json</code> file it creates.</p>
-  </main>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="script.js"></script>
