@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canvas Assignment Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>Frontend Web Development</h1>
+        <p class="sub" id="source"></p>
+      </div>
+      <button class="load" id="loadBtn" type="button">Load canvas_assignments.json</button>
+      <input id="fileInput" type="file" accept=".json,application/json" hidden>
+    </header>
+
+    <section class="progress" aria-label="Progress summary">
+      <div class="bar" id="bar" role="img"></div>
+      <ul class="legend" id="legend"></ul>
+    </section>
+
+    <div class="filters" id="filters" role="group" aria-label="Filter assignments"></div>
+    <ul class="list" id="list"></ul>
+
+    <p class="note">Data comes from scraper.js. Run <code>node scraper.js</code>, then load the JSON file it creates.</p>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

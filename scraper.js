@@ -1,82 +1,117 @@
-const { chromium } = require('playwright');
-const fs = require('fs'); // Built-in Node.js module to write files
+$(function () {
+  const SAMPLE = [
+    { title: "Formative Assignment 1 - Quiz", dueDate: "Due Sep 27 at 11:59pm", status: "Submitted" },
+    { title: "Web Scraping with Playwright", dueDate: "Due Sep 30 at 11:59pm", status: "Not Submitted / Available" },
+    { title: "HTML and CSS Portfolio", dueDate: "Due Sep 20 at 11:59pm", status: "Missing" },
+    { title: "JavaScript DOM Lab", dueDate: "No due date", status: "Not Submitted / Available" }
+  ];
+  const SAMPLE_NOTE = "Showing sample data. Load your scraped file to see your own assignments.";
+  const KINDS = ["done", "pending", "missing"];
+  const LABELS = { done: "submitted", pending: "to do", missing: "missing" };
 
-async function scrapeALUCanvas() {
-  // 1. Launch a normal, visible browser window
-  const browser = await chromium.launch({ headless: false });
-  const page = await browser.newPage();
+  const $bar = $("#bar");
+  const $legend = $("#legend");
+  const $filters = $("#filters");
+  const $list = $("#list");
+  const $source = $("#source");
 
-  console.log('Navigating to ALU Canvas...');
-  await page.goto('https://alueducation.instructure.com', { timeout: 60000 });
+  let items = [];
+  let filter = "all";
 
-  // 2. PAUSE AND HANDOFF TO STUDENT FOR GOOGLE AND 2FA LOGIN
-  console.log('\n======================================================');
-  console.log('ACTION REQUIRED: Please log in using your student Google account.');
-  console.log('Complete any 2FA prompts on your mobile device if required.');
-  console.log('======================================================\n');
-
-  // The script will wait indefinitely (timeout: 0) until it detects that the browser
-  // has successfully redirected past the login screens and onto the Canvas dashboard.
-  await page.waitForURL('**/courses**', { timeout: 0 });
-  console.log('Login verified! Arrived at the Canvas Dashboard.');
-  console.log('Navigating to the "Frontend Web development" course...');
-
-  // 3. Navigate into the Course and to the Assignments tab
-  await page.getByRole('link', { name: 'Frontend Web development' }).first().click();
-  await page.getByRole('link', { name: 'Assignments' }).click();
-
-  // Wait for the assignment container structure to render on the screen
-  await page.waitForSelector('.assignment-list');
-
-  // 4. Locate all assignment cards or rows
-  const assignmentRows = await page.locator('.assignment-list .ig-row').all();
-  const scrapedAssignments = [];
-
-  console.log(`Detected ${assignmentRows.length} items. Extracting DOM elements...`);
-
-  // 5. Loop through each row to safely pull details
-  for (const row of assignmentRows) {
-    try {
-      // Pull Title
-      const title = await row.locator('.ig-title').innerText();
-
-      // Pull Due Date safely (Handles missing due dates without crashing)
-      const dueDateElement = row.locator('.assignment-date-due');
-      const dueDate = (await dueDateElement.count()) > 0
-        ? await dueDateElement.innerText()
-        : 'No due date';
-
-      // Pull Status text
-      const statusElement = row.locator('.submission-status-container');
-      const status = (await statusElement.count()) > 0
-        ? await statusElement.innerText()
-        : 'Not Submitted / Available';
-
-      scrapedAssignments.push({
-        title: title.trim().replace(/\n/g, ' '),
-        dueDate: dueDate.trim().replace(/\n/g, ' '),
-        status: status.trim().replace(/\n/g, ' ')
-      });
-    } catch (error) {
-      // If a single row parsing fails, skip it instead of breaking the entire script
-      continue;
-    }
+  function classify(status) {
+    const s = status.toLowerCase();
+    if (s.includes("missing")) return "missing";
+    if (s.includes("not submitted")) return "pending";
+    if (s.includes("submitted")) return "done";
+    if (s.includes("late")) return "missing";
+    return "pending";
   }
 
-  // 6. OUTPUT 1: Visual Table in Terminal Console
-  console.log('\n--- SCRAPED ASSIGNMENT DATA ---');
-  console.table(scrapedAssignments);
+  // Build the filter buttons once so keyboard focus is kept when you click one
+  const filterDefs = [["all", "All"], ["pending", "To do"], ["missing", "Missing"], ["done", "Submitted"]];
+  $filters.append(
+    filterDefs.map(([key, text]) =>
+      $("<button>", { type: "button", class: "chip", text: text, "data-filter": key })
+    )
+  );
 
-  // 7. OUTPUT 2: Export Data to a local JSON file
-  const outputFilename = 'canvas_assignments.json';
-  const jsonString = JSON.stringify(scrapedAssignments, null, 2);
-  fs.writeFileSync(outputFilename, jsonString, 'utf-8');
+  // One click handler for all buttons (event delegation)
+  $filters.on("click", ".chip", function () {
+    filter = $(this).data("filter");
+    render();
+  });
 
-  console.log(`\nSuccess! Clean JSON dataset saved locally to: ./${outputFilename}`);
+  function render() {
+    const counts = { done: 0, pending: 0, missing: 0 };
+    items.forEach(function (i) { counts[i.kind]++; });
+    const total = items.length || 1;
 
-  // Hold the browser open briefly before shutting down the script execution
-  await page.waitForTimeout(5000);
-  await browser.close();
-}
+    $bar.empty().append(
+      KINDS.map(function (k) {
+        return $("<span>", { class: k }).css("width", (counts[k] / total * 100) + "%");
+      })
+    ).attr("aria-label",
+      counts.done + " submitted, " + counts.pending + " to do, " + counts.missing + " missing");
 
-scrapeALUCanvas();
+    $legend.empty().append(
+      KINDS.map(function (k) {
+        return $("<li>").append($("<strong>").text(counts[k]), document.createTextNode(LABELS[k]));
+      })
+    );
+
+    $filters.find(".chip").each(function () {
+      $(this).attr("aria-pressed", String($(this).data("filter") === filter));
+    });
+
+    const shown = items.filter(function (i) { return filter === "all" || i.kind === filter; });
+
+    if (!shown.length) {
+      $list.empty().append(
+        $("<li>", { class: "empty", text: "No assignments match this filter. Choose All to see everything." })
+      );
+      return;
+    }
+
+    $list.empty().append(
+      shown.map(function (i) {
+        return $("<li>", { class: "item " + i.kind }).append(
+          $("<span>", { class: "title", text: i.title }),
+          $("<span>", { class: "due", text: i.dueDate }),
+          $("<span>", { class: "status", text: i.status })
+        );
+      })
+    );
+  }
+
+  function setData(data, note) {
+    items = data.map(function (r) {
+      return {
+        title: r.title || "Untitled",
+        dueDate: r.dueDate || "No due date",
+        status: r.status || "Unknown",
+        kind: classify(r.status || "")
+      };
+    });
+    $source.text(note);
+    render();
+  }
+
+  $("#loadBtn").on("click", function () { $("#fileInput").trigger("click"); });
+
+  $("#fileInput").on("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+    file.text().then(function (text) {
+      try {
+        setData(JSON.parse(text), "Loaded " + file.name);
+      } catch (err) {
+        $source.text("That file isn't valid JSON. Choose the canvas_assignments.json that scraper.js created.");
+      }
+    });
+  });
+
+  // Works over http (for example: npx serve); on file:// it falls back to sample data
+  $.getJSON("canvas_assignments.json")
+    .done(function (data) { setData(data, "Loaded canvas_assignments.json"); })
+    .fail(function () { setData(SAMPLE, SAMPLE_NOTE); });
+});
