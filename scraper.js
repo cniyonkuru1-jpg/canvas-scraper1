@@ -12,7 +12,6 @@ async function main() {
   console.log(`Found ${rows.length} assignments\n`);
 
   rows.each((i, el) => {
-    const $row = $(el);
 
     const title =
       clean($row.find(".ig-title").first().text()) ||
